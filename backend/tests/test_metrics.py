@@ -1,10 +1,10 @@
 """
-Unit tests for metrics computation (max_profit, max_loss, breakeven, strategy_name).
+Unit tests for metrics computation
+(max_profit, max_loss, breakeven, strategy_name).
 """
 
 from datetime import date
 
-import numpy as np
 import pytest
 
 from app.analysis.metrics import compute_metrics, detect_strategy_name
@@ -51,10 +51,8 @@ class TestLongCallMetrics:
     def test_max_loss(self, metrics) -> None:
         assert metrics.max_loss == pytest.approx(-5.0, abs=0.01)
 
-    def test_max_profit_is_large(self, metrics) -> None:
-        # Profit is bounded by the price range ceiling (2 * 100 = 200)
-        # payoff at 200 = 200 - 100 - 5 = 95
-        assert metrics.max_profit == pytest.approx(95.0, abs=0.1)
+    def test_max_profit_is_unlimited(self, metrics) -> None:
+        assert metrics.max_profit == float("inf")
 
     def test_breakeven(self, metrics) -> None:
         assert len(metrics.breakeven_points) == 1
@@ -96,9 +94,8 @@ class TestShortPutMetrics:
     def test_max_profit(self, metrics) -> None:
         assert metrics.max_profit == pytest.approx(4.0, abs=0.01)
 
-    def test_max_loss_bounded_by_price_range(self, metrics) -> None:
-        # At S=0: loss = 0 - 100 + 4 = -96
-        assert metrics.max_loss == pytest.approx(-96.0, abs=0.1)
+    def test_max_loss_is_unlimited(self, metrics) -> None:
+        assert metrics.max_loss == float("-inf")
 
     def test_strategy_name(self, metrics) -> None:
         assert metrics.strategy_name == "Short Put"
@@ -235,10 +232,14 @@ class TestIronButterflyName:
             _contract(OptionType.CALL, Position.LONG, 110.0, 1.0),
         ]
 
-    def test_detected_as_iron_butterfly(self, contracts: list[OptionContract]) -> None:
+    def test_detected_as_iron_butterfly(
+        self, contracts: list[OptionContract]
+    ) -> None:
         assert detect_strategy_name(contracts) == "Iron Butterfly"
 
-    def test_not_confused_with_iron_condor(self, contracts: list[OptionContract]) -> None:
+    def test_not_confused_with_iron_condor(
+        self, contracts: list[OptionContract]
+    ) -> None:
         assert detect_strategy_name(contracts) != "Iron Condor"
 
 
@@ -262,21 +263,27 @@ class TestLongCallButterflyMetrics:
     def test_strategy_name(self, contracts: list[OptionContract]) -> None:
         assert detect_strategy_name(contracts) == "Long Call Butterfly"
 
-    def test_two_breakeven_points(self, contracts: list[OptionContract]) -> None:
+    def test_two_breakeven_points(
+        self, contracts: list[OptionContract]
+    ) -> None:
         m = _run(contracts)
         assert len(m.breakeven_points) == 2
 
-    def test_max_profit_positive(self, contracts: list[OptionContract]) -> None:
+    def test_max_profit_positive(
+        self, contracts: list[OptionContract]
+    ) -> None:
         m = _run(contracts)
         assert m.max_profit > 0
 
-    def test_max_loss_is_net_debit(self, contracts: list[OptionContract]) -> None:
+    def test_max_loss_is_net_debit(
+        self, contracts: list[OptionContract]
+    ) -> None:
         # net debit = 6 + 1 - 2*3 = 1
         m = _run(contracts)
         assert m.max_loss == pytest.approx(-1.0, abs=0.02)
 
     def test_single_contract_qty2_also_detected(self) -> None:
-        # Butterfly expressed as qty=2 on the short leg instead of two separate contracts
+        # qty=2 on the short leg instead of two separate contracts
         contracts = [
             _contract(OptionType.CALL, Position.LONG, 90.0, 6.0, quantity=1),
             _contract(OptionType.CALL, Position.SHORT, 100.0, 3.0, quantity=2),

@@ -178,12 +178,10 @@ def compute_metrics(
     Returns:
         StrategyMetrics with max_profit, max_loss, breakeven_points, strategy_name.
     """
-    max_profit_val = float(np.max(payoff))
-    max_loss_val = float(np.min(payoff))
-
-    # Represent unlimited profit/loss as infinity
-    max_profit: float = max_profit_val if max_profit_val < 1e15 else float("inf")
-    max_loss: float = max_loss_val if max_loss_val > -1e15 else float("-inf")
+    # If the curve is still rising at the right edge, profit is unbounded
+    max_profit: float = float("inf") if payoff[-1] > payoff[-2] else float(np.max(payoff))
+    # If the curve is still falling at the left edge, loss is unbounded
+    max_loss: float = float("-inf") if payoff[0] < payoff[1] else float(np.min(payoff))
 
     breakevens = compute_breakeven_points(price_range, payoff)
     name = detect_strategy_name(contracts)

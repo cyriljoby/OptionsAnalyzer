@@ -39,6 +39,10 @@ class PayoffPoint(BaseModel):
     pnl: float
 
 
+class StrategyRequest(BaseModel):
+    contracts: list[OptionContractRequest]
+
+
 class StrategyAnalysisResponse(BaseModel):
     strategy_name: str
     max_profit: float | None          # None represents +inf
@@ -51,8 +55,8 @@ CURVE_SAMPLE_POINTS = 200
 
 
 @router.post("/analyze", response_model=StrategyAnalysisResponse)
-def analyze_strategy(contracts: list[OptionContractRequest]) -> StrategyAnalysisResponse:
-    if not contracts:
+async def analyze_strategy(request: StrategyRequest) -> StrategyAnalysisResponse:
+    if not request.contracts:
         raise HTTPException(status_code=422, detail="At least one contract is required")
 
     domain_contracts = [
@@ -65,7 +69,7 @@ def analyze_strategy(contracts: list[OptionContractRequest]) -> StrategyAnalysis
             quantity=c.quantity,
             expiration=c.expiration,
         )
-        for c in contracts
+        for c in request.contracts
     ]
 
     price_range, payoff = strategy_payoff(domain_contracts)
